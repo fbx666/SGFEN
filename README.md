@@ -4,7 +4,7 @@ Here, we provide the pytorch implementation of the paper: Spatial-Guided LiDAR S
 
 The implementation details of the model will be made public after the paper is received.
 
-![image](./images/)
+![image](./images/SGFEN.png)
 
 ## Requirements
 
@@ -16,7 +16,7 @@ numpy  1.22.2
 ```
 
 ## Results
-| Dataset | OA (%) | AA (%) | Kappa (%) |
+| Dataset | OA(%) | AA(%) | Kappa×100 |
 | :----: | :----: | :----: | :----: |
 | Houston  | 96.32 | 96.44 | 96.01 |
 | Trento  | 99.09 | 98.52 | 98.78 |
@@ -29,4 +29,8 @@ python SGFEN-Houston.py
 ```
 
 ## Data Download 
+Houston：https://pan.baidu.com/s/13c0h5A1fnJOKWkuG9oZlig?pwd=ouhw
 
+Trento：https://pan.baidu.com/s/1fTM4iUZOdd7LeZ1iKkVvoA?pwd=6z62 
+
+MUUFL：https://pan.baidu.com/s/1nXBUFR-KDa-q_npbkmMh1Q?pwd=wi62 
