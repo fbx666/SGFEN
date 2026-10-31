@@ -6,13 +6,14 @@ import os
 from sklearn.decomposition import PCA
 import torch.utils.data as dataf
 from operator import truediv
-
 from sklearn.metrics import classification_report, cohen_kappa_score, accuracy_score, confusion_matrix
+
 
 def selectdataset(name):
     if name == "Houston":
         print("Houston")
         return "./data/HSI.mat", "./data/LiDAR.mat", "./data/TRLabel.mat", "./data/TSLabel.mat"
+
 
 def setseed(seed):
     torch.manual_seed(seed)
@@ -22,17 +23,18 @@ def setseed(seed):
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
 
+
 def makeseed(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.benchmark= False
+    torch.backends.cudnn.benchmark=False
     torch.backends.cudnn.deterministic = True
 
 
-#3. Set parameters
+# 3. Set parameters
 def setfig(pathsize1, pathsize2, batchsize, epoch, lr, nc):
     return pathsize1, pathsize2, batchsize, epoch, lr, nc
 
@@ -46,12 +48,12 @@ def loaddataset0(path):
     trlabel = data['train']
     telabel = data['test']
 
-
     print(trlabel.shape)
 
-
     return data1, data2, trlabel, telabel
-#4. Load dataset
+
+
+# 4. Load dataset
 def loaddataset(hpath, lpath, trpath, tepath):
     data1 = io.loadmat(hpath)
     data1 = data1['HSI']
@@ -64,14 +66,12 @@ def loaddataset(hpath, lpath, trpath, tepath):
     telabel = io.loadmat(tepath)
     telabel = telabel['TSLabel']
 
-
     print(trlabel.shape)
-
 
     return data1, data2, trlabel, telabel
 
 
-# 5.Data preprocessing 1- Standardization of hyperspectral and LiDAR data
+# 5. Data preprocessing 1 - Standardization of HSI and LiDAR
 def Datapreprocessing1(data1, data2):
     [m, n, l] = data1.shape
     for i in range(l):
@@ -84,7 +84,7 @@ def Datapreprocessing1(data1, data2):
     return data1, data2
 
 
-# 6.Data preprocessing 2- PCA dimensionality reduction of hyperspectral data
+# 6. Data preprocessing 2 - PCA dimensionality reduction of the HSI
 def Datapreprocessing2(data1, nc):
     [m, n, l] = data1.shape
     PC = np.reshape(data1, (m * n, l))
@@ -94,9 +94,9 @@ def Datapreprocessing2(data1, nc):
     return PC
 
 
-# 7.Data preprocessing 3- HSI and LiDAR data boundary interpolation
+# 7. Data preprocessing 3 - Boundary padding for HSI and LiDAR
 def Datapreprocessing3(PC, data2, patchsize1, patchsize2, nc):
-    # HSI
+    # HSI: symmetric padding
     temp = PC[:, :, 0]
     pad_width1 = np.int(np.floor(patchsize1 / 2))
     temp2 = np.pad(temp, pad_width1, 'symmetric')
@@ -107,17 +107,17 @@ def Datapreprocessing3(PC, data2, patchsize1, patchsize2, nc):
         pad_width1 = np.int(np.floor(patchsize1 / 2))
         temp2 = np.pad(temp, pad_width1, 'symmetric')
         x1[:, :, i] = temp2
-    # LiDAR
+    # LiDAR: symmetric padding
     pad_width2 = np.int(np.floor(patchsize2 / 2))
-    temp2 = np.pad(data2, pad_width2, 'symmetric')  # 注意这里的temp2
+    temp2 = np.pad(data2, pad_width2, 'symmetric')
     x2 = temp2
     return x1, x2, pad_width1, pad_width2
 
 
-# 8. Data Preprocessing 4- Generate Dataset (Set as Universal)
+# 8. Data preprocessing 4 - Generate patches
 def Datapreprocessing4(data, label, patchsize, pad_width, nc):
     [ind1, ind2] = np.where(label != 0)
-    print('data:',data.shape)
+    print('data:', data.shape)
     Num = len(ind1)
     print(Num)
     Patch = np.empty((Num, nc, patchsize, patchsize), dtype='float32')
@@ -141,7 +141,7 @@ def Datapreprocessing4(data, label, patchsize, pad_width, nc):
     return Patch, Label
 
 
-# 9. Data Preprocessing 5- Building a Data Loader (Set as Universal)
+# 9. Data preprocessing 5 - Build data loaders
 def Datapreprocessing5(TrainPatch1, TrainLabel1, TrainPatch2, TrainLabel2, TestPatch1, TestLabel1, TestPatch2,
                        TestLabel2, batchsize):
     TrainPatch1 = torch.from_numpy(TrainPatch1)
@@ -163,7 +163,8 @@ def Datapreprocessing5(TrainPatch1, TrainLabel1, TrainPatch2, TrainLabel2, TestP
     test_loader = dataf.DataLoader(dataset, batch_size=batchsize, shuffle=True, drop_last=False)
     return train_loader, test_loader, Classes
 
-# 10.Prepare labels and accuracy for the Houston dataset
+
+# 10. Accuracy metrics for the Houston dataset
 def acc_reports(y_test, y_pred_test):
     target_names = ['1', '2', '3', '4', '5', '6', '7',
                     '8', '9', '10', '11',
@@ -174,10 +175,11 @@ def acc_reports(y_test, y_pred_test):
     each_acc, aa = AA_andEachClassAccuracy(confusion)
     kappa = cohen_kappa_score(y_test, y_pred_test)
 
-    return classification, round(oa * 100, 2), confusion, np.round(each_acc*100, 2), round(aa * 100, 2), round(kappa * 100,2)
+    return (classification, round(oa * 100, 2), confusion,
+            np.round(each_acc * 100, 2), round(aa * 100, 2), round(kappa * 100, 2))
 
 
-# 11.Output accuracy and confusion matrix
+# 11. Per-class accuracy and average accuracy
 def AA_andEachClassAccuracy(confusion_matrix):
     list_diag = np.diag(confusion_matrix)
     list_raw_sum = np.sum(confusion_matrix, axis=1)
@@ -185,10 +187,10 @@ def AA_andEachClassAccuracy(confusion_matrix):
     average_acc = np.mean(each_acc)
     return each_acc, average_acc
 
-# 12.Print results
-def AngPrint(oa,aa,kappa):
+
+# 12. Print metrics
+def AngPrint(oa, aa, kappa):
     print('OA:', oa)
     print('AA:', aa)
     print('Kappa:', kappa)
     print("\n")
-
